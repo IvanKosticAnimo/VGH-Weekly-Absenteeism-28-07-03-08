@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VGH Weekly Absenteeism Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #000000;
+            min-height: 100vh;
+            color: white;
+        }
+        
+        .dashboard {
+            max-width: 1800px;
+            margin: 0 auto;
+            background: #000000;
+            border-radius: 20px;
+            padding: 30px;
+        }
+        
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            font-weight: 300;
+            text-shadow: 2px 2px 4px rgba(255,255,255,0.1);
+        }
+        
+        .week-info {
+            text-align: center;
+            color: #ccc;
+            margin-bottom: 30px;
+            font-size: 1.2em;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: #404040;
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(255,255,255,0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .stat-label {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .charts-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .chart-container {
+            background: #404040;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(255,255,255,0.1);
+            height: 400px;
+        }
+        
+        .classification-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .classification-card {
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .classification-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .classification-card.low {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+        }
+        
+        .classification-card.acceptable {
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+            color: white;
+        }
+        
+        .classification-card.moderate {
+            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+            color: white;
+        }
+        
+        .classification-card.high {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+        }
+        
+        .classification-title {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .classification-range {
+            text-align: center;
+            font-size: 1.2em;
+            margin-bottom: 15px;
+            opacity: 0.9;
+        }
+        
+        .employee-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .employee-item {
+            background: rgba(255, 255, 255, 0.2);
+            margin: 5px 0;
+            padding: 10px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .employee-name {
+            font-weight: 500;
+        }
+        
+        .employee-percentage {
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        
+        .employee-count {
+            text-align: center;
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .table-container {
+            background: #404040;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(255,255,255,0.1);
+            overflow-x: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #666;
+            color: white;
+        }
+        
+        th {
+            background: #333333;
+            color: white;
+            font-weight: 600;
+        }
+        
+        tr:hover {
+            background-color: #555555;
+        }
+        
+        .percentage-cell {
+            font-weight: bold;
+            padding: 8px 12px;
+            border-radius: 6px;
+            color: white;
+        }
+        
+        .percentage-cell.low {
+            background-color: #3498db;
+        }
+        
+        .percentage-cell.acceptable {
+            background-color: #27ae60;
+        }
+        
+        .percentage-cell.moderate {
+            background-color: #f39c12;
+        }
+        
+        .percentage-cell.high {
+            background-color: #e74c3c;
+        }
+        
+        @media (max-width: 768px) {
+            .charts-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .classification-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <h1>VGH Weekly Absenteeism Dashboard</h1>
+        <div class="week-info">Week of July 28 - August 3, 2025 | Scheduled: 38 hours per employee</div>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="totalEmployees">33</div>
+                <div class="stat-label">Total Employees</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="avgAbsenteeism">5.7%</div>
+                <div class="stat-label">Average Absenteeism</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalAbsences">182</div>
+                <div class="stat-label">Total Absence Hours</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalDays">19.2</div>
+                <div class="stat-label">Total Absence Days</div>
+            </div>
+        </div>
+        
+        <div class="charts-container">
+            <div class="chart-container">
+                <canvas id="distributionChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <canvas id="employeeChart"></canvas>
+            </div>
+        </div>
+        
+        <div class="classification-grid">
+            <div class="classification-card low">
+                <div class="classification-title">Low Absenteeism</div>
+                <div class="classification-range">0% - 5%</div>
+                <div class="employee-count" id="lowCount">26 Employees</div>
+                <ul class="employee-list" id="lowList"></ul>
+            </div>
+            
+            <div class="classification-card acceptable">
+                <div class="classification-title">Acceptable Absenteeism</div>
+                <div class="classification-range">5% - 20%</div>
+                <div class="employee-count" id="acceptableCount">3 Employees</div>
+                <ul class="employee-list" id="acceptableList"></ul>
+            </div>
+            
+            <div class="classification-card moderate">
+                <div class="classification-title">Moderate Absenteeism</div>
+                <div class="classification-range">20% - 50%</div>
+                <div class="employee-count" id="moderateCount">2 Employees</div>
+                <ul class="employee-list" id="moderateList"></ul>
+            </div>
+            
+            <div class="classification-card high">
+                <div class="classification-title">High Absenteeism</div>
+                <div class="classification-range">> 50%</div>
+                <div class="employee-count" id="highCount">2 Employees</div>
+                <ul class="employee-list" id="highList"></ul>
+            </div>
+        </div>
+        
+        <div class="table-container">
+            <h2>Detailed Employee Absenteeism Report - Week of July 28 - August 3, 2025</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Employee Name</th>
+                        <th>Total Absence Hours</th>
+                        <th>Total Days</th>
+                        <th>Absenteeism Percentage</th>
+                        <th>Classification</th>
+                    </tr>
+                </thead>
+                <tbody id="employeeTableBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Employee data for the week of July 28 - August 3, 2025
+        const employees = [
+            { name: 'Adam Restaino', absences: 0 },
+            { name: 'Alex Klanert', absences: 0 },
+            { name: 'Ali Badzak', absences: 28.5 },
+            { name: 'Alicia Leng', absences: 0 },
+            { name: 'Amara Harsley', absences: 0 },
+            { name: 'Amy Court', absences: 0 },
+            { name: 'Angelina Goh', absences: 0 },
+            { name: 'Anna Thomas', absences: 9.5 },
+            { name: 'Anthony Bowles', absences: 0 },
+            { name: 'Belinda Graham', absences: 0 },
+            { name: 'Caitlyn Brown', absences: 0 },
+            { name: 'Declan McMath', absences: 0 },
+            { name: 'Diego Palma', absences: 0 },
+            { name: 'Douglas Mullen-Oldfield', absences: 0 },
+            { name: 'Eddie Tuckerman', absences: 38 },
+            { name: 'Elleia Russell', absences: 28.5 },
+            { name: 'Holly Zindilis', absences: 38 },
+            { name: 'Katelyn Hunter', absences: 0 },
+            { name: 'Kiara Seneviratne', absences: 1.5 },
+            { name: 'Lilly Bajada', absences: 0 },
+            { name: 'Lochlan Larkin', absences: 0 },
+            { name: 'Luka Conroy', absences: 0 },
+            { name: 'Madison Sleep', absences: 0 },
+            { name: 'Midori Hong', absences: 0 },
+            { name: 'Mini Webb', absences: 0 },
+            { name: 'Natasha Rayner', absences: 0 },
+            { name: 'Phoenix Comisso', absences: 0 },
+            { name: 'Ryan Cliffe', absences: 5.5 },
+            { name: 'Safeya Gani', absences: 0 },
+            { name: 'Skyla Dostovaloff', absences: 9.5 },
+            { name: 'Tony Cocking', absences: 0 },
+            { name: 'Tyson Davies', absences: 0 },
+            { name: 'Zachary Paroissien', absences: 22.5 }
+        ];
+
+        // Calculate percentages and total days
+        employees.forEach(emp => {
+            emp.percentage = (emp.absences / 38) * 100;
+            emp.totalDays = emp.absences / 9.5;
+        });
+
+        // Classification function for weekly data
+        function getClassification(percentage) {
+            if (percentage <= 5) return 'low';
+            if (percentage <= 20) return 'acceptable';
+            if (percentage <= 50) return 'moderate';
+            return 'high';
+        }
+
+        // Classify employees
+        const classifications = {
+            low: employees.filter(emp => emp.percentage <= 5),
+            acceptable: employees.filter(emp => emp.percentage > 5 && emp.percentage <= 20),
+            moderate: employees.filter(emp => emp.percentage > 20 && emp.percentage <= 50),
+            high: employees.filter(emp => emp.percentage > 50)
+        };
+
+        // Update statistics
+        const totalAbsences = employees.reduce((sum, emp) => sum + emp.absences, 0);
+        const totalDaysAbsent = employees.reduce((sum, emp) => sum + emp.totalDays, 0);
+        const avgAbsenteeism = employees.reduce((sum, emp) => sum + emp.percentage, 0) / employees.length;
+
+        document.getElementById('totalEmployees').textContent = employees.length;
+        document.getElementById('avgAbsenteeism').textContent = avgAbsenteeism.toFixed(1) + '%';
+        document.getElementById('totalAbsences').textContent = totalAbsences.toFixed(0);
+        document.getElementById('totalDays').textContent = totalDaysAbsent.toFixed(1);
+
+        // Update classification counts
+        document.getElementById('lowCount').textContent = classifications.low.length + ' Employees';
+        document.getElementById('acceptableCount').textContent = classifications.acceptable.length + ' Employees';
+        document.getElementById('moderateCount').textContent = classifications.moderate.length + ' Employees';
+        document.getElementById('highCount').textContent = classifications.high.length + ' Employees';
+
+        // Populate classification lists
+        function populateList(listId, employees) {
+            const list = document.getElementById(listId);
+            list.innerHTML = '';
+            employees.forEach(emp => {
+                const li = document.createElement('li');
+                li.className = 'employee-item';
+                li.innerHTML = `
+                    <span class="employee-name">${emp.name}</span>
+                    <span class="employee-percentage">${emp.percentage.toFixed(1)}%</span>
+                `;
+                list.appendChild(li);
+            });
+        }
+
+        populateList('lowList', classifications.low);
+        populateList('acceptableList', classifications.acceptable);
+        populateList('moderateList', classifications.moderate);
+        populateList('highList', classifications.high);
+
+        // Create distribution chart
+        const distributionCtx = document.getElementById('distributionChart').getContext('2d');
+        const distributionChart = new Chart(distributionCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Low (0-5%)', 'Acceptable (5-20%)', 'Moderate (20-50%)', 'High (>50%)'],
+                datasets: [{
+                    data: [
+                        classifications.low.length,
+                        classifications.acceptable.length,
+                        classifications.moderate.length,
+                        classifications.high.length
+                    ],
+                    backgroundColor: ['#3498db', '#27ae60', '#f39c12', '#e74c3c'],
+                    borderWidth: 3,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Weekly Absenteeism Distribution',
+                        color: 'white',
+                        font: {
+                            size: 18,
+                            weight: 'bold'
+                        }
+                    },
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 20,
+                            color: 'white'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Create employee chart (employees with absences only)
+        const employeesWithAbsences = employees.filter(emp => emp.absences > 0).sort((a, b) => b.percentage - a.percentage);
+        const employeeCtx = document.getElementById('employeeChart').getContext('2d');
+        const employeeChart = new Chart(employeeCtx, {
+            type: 'bar',
+            data: {
+                labels: employeesWithAbsences.map(emp => emp.name.split(' ')[0]),
+                datasets: [{
+                    label: 'Absenteeism %',
+                    data: employeesWithAbsences.map(emp => emp.percentage),
+                    backgroundColor: employeesWithAbsences.map(emp => {
+                        const classification = getClassification(emp.percentage);
+                        switch(classification) {
+                            case 'low': return '#3498db';
+                            case 'acceptable': return '#27ae60';
+                            case 'moderate': return '#f39c12';
+                            case 'high': return '#e74c3c';
+                        }
+                    }),
+                    borderColor: '#fff',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Employees with Absences This Week',
+                        color: 'white',
+                        font: {
+                            size: 18,
+                            weight: 'bold'
+                        }
+                    },
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Absenteeism %',
+                            color: 'white'
+                        },
+                        ticks: {
+                            color: 'white'
+                        },
+                        grid: {
+                            color: '#666'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Employee',
+                            color: 'white'
+                        },
+                        ticks: {
+                            color: 'white'
+                        },
+                        grid: {
+                            color: '#666'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Populate employee table
+        const tableBody = document.getElementById('employeeTableBody');
+        employees.sort((a, b) => b.percentage - a.percentage).forEach(emp => {
+            const row = document.createElement('tr');
+            const classification = getClassification(emp.percentage);
+            row.innerHTML = `
+                <td>${emp.name}</td>
+                <td>${emp.absences.toFixed(1)}</td>
+                <td>${emp.totalDays.toFixed(1)}</td>
+                <td><span class="percentage-cell ${classification}">${emp.percentage.toFixed(1)}%</span></td>
+                <td>${classification.charAt(0).toUpperCase() + classification.slice(1)}</td>
+            `;
+            tableBody.appendChild(row);
+        });
+    </script>
+</body>
+</html>
